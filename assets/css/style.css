@@ -600,7 +600,14 @@ ul{ margin: 0; padding: 0; list-style: none; }
 .scene-cta:active{ transform: scale(0.96); }
 .scene-cta .arrow{ display: inline-block; transition: transform 0.2s ease; }
 
+/* Unlike the project cards, Contact has no image to fill a forced-tall
+   section with — the generic .scene min-height (up to 760px) left large
+   dead space above/below its short content at every width from ~640px up
+   through desktop, most obviously where the content column narrows but
+   the box stays 760px tall. Contact just sizes to its own content instead. */
 .scene-contact{
+  min-height: auto;
+  padding: 88px 0;
   align-items: center;
   justify-content: center;
   border-top: 1px solid var(--border-soft);
@@ -629,7 +636,6 @@ ul{ margin: 0; padding: 0; list-style: none; }
 /* ---------------------------------------------------
    Contact
 --------------------------------------------------- */
-.section-contact{ padding-bottom: 120px; }
 .contact-lede{
   color: var(--text-muted);
   max-width: 50ch;
