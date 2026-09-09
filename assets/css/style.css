@@ -925,7 +925,11 @@ html.has-custom-cursor a, html.has-custom-cursor button{
 @media (max-width: 520px){
   .header-inner{ height: 58px; }
   .hero{ padding: 48px 20px 80px; }
-  .wrap{ padding: 0 20px; }
+  /* Longhand only — this element is often also .hero/.scene-row/.detail-hero,
+     which set their own vertical padding at this breakpoint. A shorthand
+     `padding: 0 20px` here would win the cascade (later in the file, same
+     specificity) and silently zero out their top/bottom padding. */
+  .wrap{ padding-left: 20px; padding-right: 20px; }
   .about-facts{ grid-template-columns: 1fr 1fr; }
 }
 
