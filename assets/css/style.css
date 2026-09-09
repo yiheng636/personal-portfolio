@@ -1,0 +1,966 @@
+/* ---------------------------------------------------
+   Tokens
+--------------------------------------------------- */
+:root{
+  --bg: #0a0a0b;
+  --bg-alt: #131315;
+  --surface: #17181b;
+  --surface-hover: #1d1e22;
+  --border: #26272b;
+  --border-soft: #1c1d20;
+
+  --text: #ededf0;
+  --text-muted: #9a9ba3;
+  --text-faint: #616268;
+
+  --accent: #5b8dd6;
+  --accent-bright: #78a5e8;
+  --on-accent: #f5f8fd;
+  --accent-soft: rgba(91, 141, 214, 0.12);
+  --accent-line: rgba(91, 141, 214, 0.35);
+
+  --font-head: "Space Grotesk", "Inter", system-ui, sans-serif;
+  --font-body: "Inter", system-ui, -apple-system, sans-serif;
+
+  --wrap: 1080px;
+  --radius: 14px;
+}
+
+/* ---------------------------------------------------
+   Reset
+--------------------------------------------------- */
+*, *::before, *::after{ box-sizing: border-box; }
+/* No CSS scroll-behavior: smooth here — it fights the JS-driven snap in
+   main.js (both would try to animate the scroll position at once). Anchor
+   links and the magnetic Work-section snap are both handled in JS instead,
+   via scrollIntoView, so there's a single source of scroll animation. */
+body{
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+img{ max-width: 100%; display: block; }
+a{ color: inherit; text-decoration: none; }
+h1, h2, h3, h4{ font-family: var(--font-head); margin: 0; font-weight: 600; }
+p{ margin: 0; }
+ul{ margin: 0; padding: 0; list-style: none; }
+
+.wrap{
+  max-width: var(--wrap);
+  margin: 0 auto;
+  padding: 0 28px;
+}
+
+.text-muted{ color: var(--text-muted); font-weight: 400; }
+
+/* Background layer: grid + spotlight glow, isolated into their own
+   stacking context so nothing they do (blend modes, opacity, transforms)
+   can ever paint above real page content. Every box/panel is opaque and
+   comes later in the DOM, so it always covers this layer completely. */
+.bg-layer{
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  isolation: isolate;
+  pointer-events: none;
+}
+
+.grain{
+  position: fixed;
+  inset: -10vh -10vw;
+  pointer-events: none;
+  will-change: transform;
+  background:
+    repeating-linear-gradient(to right, rgba(91,141,214,0.045) 0, rgba(91,141,214,0.045) 1px, transparent 1px, transparent 28px),
+    repeating-linear-gradient(to bottom, rgba(91,141,214,0.045) 0, rgba(91,141,214,0.045) 1px, transparent 1px, transparent 28px),
+    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(91,141,214,0.05), transparent 60%),
+    radial-gradient(ellipse 60% 40% at 100% 100%, rgba(91,141,214,0.035), transparent 60%);
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 20%, #000 40%, transparent 92%);
+  -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 20%, #000 40%, transparent 92%);
+}
+
+/* soft light that follows the pointer, illuminating the grid beneath it.
+   Wrapped with .grain in an isolated, z-index:0 background layer (see
+   .bg-layer) so plain alpha compositing — not a blend mode — decides what
+   shows through: any opaque box painted after it in the DOM simply covers
+   it, no exceptions. */
+.spotlight{
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  background: radial-gradient(
+    circle 150px at var(--sx, 50%) var(--sy, 30%),
+    rgba(133, 176, 234, 0.14),
+    rgba(133, 176, 234, 0.05) 45%,
+    transparent 72%
+  );
+}
+.spotlight.is-active{ opacity: 1; }
+
+/* ---------------------------------------------------
+   Header
+--------------------------------------------------- */
+.site-header{
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  backdrop-filter: blur(10px);
+  background: rgba(10, 10, 11, 0.7);
+  border-bottom: 1px solid var(--border-soft);
+  transition: background 0.2s ease;
+}
+.site-header.is-scrolled{
+  background: rgba(10, 10, 11, 0.92);
+}
+.header-inner{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 64px;
+}
+.logo{
+  font-family: var(--font-head);
+  font-weight: 700;
+  font-size: 1.05rem;
+  letter-spacing: 0.02em;
+  transition: opacity 0.15s ease;
+}
+.logo:hover{ opacity: 0.8; }
+.logo:active{ opacity: 0.6; }
+.logo-dot{ color: var(--accent); }
+
+.nav{
+  display: flex;
+  gap: 32px;
+}
+.nav a{
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  transition: color 0.15s ease;
+}
+.nav a:hover{ color: var(--text); }
+.nav a:active{ opacity: 0.6; }
+
+.nav-cta{ font-size: 0.85rem; padding: 8px 16px; }
+
+/* ---------------------------------------------------
+   Buttons
+--------------------------------------------------- */
+.btn{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 22px;
+  border-radius: 999px;
+  font-size: 0.92rem;
+  font-weight: 500;
+  border: 1px solid transparent;
+  transition: all 0.18s ease;
+  white-space: nowrap;
+}
+.btn-primary{
+  background: var(--accent);
+  color: var(--on-accent);
+}
+.btn-primary:hover{
+  background: var(--accent-bright);
+  transform: translateY(-1px);
+}
+.btn-ghost{
+  border-color: var(--border);
+  color: var(--text);
+}
+.btn-ghost:hover{
+  border-color: var(--accent-line);
+  background: var(--accent-soft);
+}
+/* Feedback fires the instant the button is pressed, not on release —
+   overrides the hover lift so pressing reads as pressing down, not up. */
+.btn:active{
+  transform: scale(0.96);
+  transition: transform 100ms ease-out;
+}
+
+/* ---------------------------------------------------
+   Hero
+--------------------------------------------------- */
+.hero{
+  position: relative;
+  z-index: 1;
+  min-height: 100svh;
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: 56px;
+  align-items: center;
+  padding: 96px 28px 120px;
+}
+
+.scroll-cue{
+  position: absolute;
+  left: 50%;
+  bottom: 36px;
+  transform: translateX(-50%);
+  width: 26px;
+  height: 42px;
+  border: 1.5px solid var(--border);
+  border-radius: 999px;
+  display: flex;
+  justify-content: center;
+  padding-top: 8px;
+  transition: border-color 0.2s ease, transform 100ms ease-out;
+}
+.scroll-cue:hover{ border-color: var(--accent-line); }
+.scroll-cue:active{ transform: translateX(-50%) scale(0.9); }
+.scroll-cue span{
+  width: 4px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--accent);
+  animation: scroll-cue-drop 1.8s ease-in-out infinite;
+}
+@keyframes scroll-cue-drop{
+  0%{ transform: translateY(0); opacity: 1; }
+  70%{ transform: translateY(14px); opacity: 0; }
+  71%{ transform: translateY(0); opacity: 0; }
+  100%{ transform: translateY(0); opacity: 1; }
+}
+@media (max-width: 640px){
+  .scroll-cue{ display: none; }
+}
+.eyebrow{
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 18px;
+  font-weight: 500;
+}
+.eyebrow::before, .section-label::before{
+  content: "";
+  display: inline-block;
+  width: 0;
+  height: 1px;
+  margin-right: 0;
+  background: var(--accent);
+  vertical-align: middle;
+  transition: width 0.7s cubic-bezier(0.16, 1, 0.3, 1), margin-right 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.eyebrow.is-visible::before, .section-label.is-visible::before{
+  width: 22px;
+  margin-right: 8px;
+}
+.hero-text h1{
+  font-size: clamp(2.4rem, 5vw, 3.6rem);
+  line-height: 1.08;
+  /* Tracking tightens as text gets larger — the same -0.01em that suits a
+     small heading reads too loose at display size. */
+  letter-spacing: -0.03em;
+  margin-bottom: 22px;
+}
+.hero-lede{
+  color: var(--text-muted);
+  font-size: 1.08rem;
+  max-width: 46ch;
+  margin-bottom: 34px;
+}
+.hero-actions{
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.hero-media{
+  position: relative;
+  justify-self: center;
+}
+.hero-frame{
+  width: min(320px, 60vw);
+  aspect-ratio: 4 / 5;
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  box-shadow: 0 30px 60px -20px rgba(0,0,0,0.6);
+}
+.hero-frame img{
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: grayscale(15%) contrast(1.04);
+}
+.hero-tag{
+  position: absolute;
+  bottom: -16px;
+  left: -16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 8px 16px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  letter-spacing: 0.03em;
+}
+
+/* ---------------------------------------------------
+   Sections (shared)
+--------------------------------------------------- */
+.section{
+  position: relative;
+  z-index: 1;
+  padding: 88px 0;
+  border-top: 1px solid var(--border-soft);
+}
+.section-label{
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  margin-bottom: 14px;
+  font-weight: 500;
+}
+.section-title{
+  font-size: clamp(1.6rem, 3vw, 2.1rem);
+  letter-spacing: -0.015em;
+  margin-bottom: 44px;
+}
+
+/* ---------------------------------------------------
+   About
+--------------------------------------------------- */
+.about-grid{
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 60px;
+  margin-bottom: 48px;
+}
+.about-copy p{
+  color: var(--text-muted);
+  margin-bottom: 18px;
+  font-size: 1.02rem;
+}
+.about-copy p:last-child{ margin-bottom: 0; }
+
+.about-facts{
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  background: var(--border-soft);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius);
+  overflow: hidden;
+  align-content: start;
+  align-self: start;
+}
+.fact{
+  background: var(--bg);
+  padding: 22px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.fact-value{
+  font-family: var(--font-head);
+  font-size: 1.7rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+.fact-unit{
+  font-size: 1rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+.fact-label{
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.skills{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.skill-tag{
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  padding: 7px 14px;
+  border-radius: 999px;
+  background: var(--surface);
+}
+
+/* ---------------------------------------------------
+   Project meta / tags / points
+   Shared primitives used by both the homepage scene cards (.scene-text
+   .project-meta etc.) and the subpage detail-hero/detail-body sections —
+   not tied to any one layout, so they live outside both.
+--------------------------------------------------- */
+.project-meta{
+  font-size: 0.8rem;
+  color: var(--text-faint);
+  letter-spacing: 0.02em;
+}
+.project-points{
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.project-points li{
+  position: relative;
+  padding-left: 18px;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+.project-points li::before{
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.55em;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.project-tags{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+.project-tags span{
+  font-size: 0.76rem;
+  color: var(--text-faint);
+  border: 1px solid var(--border);
+  padding: 5px 11px;
+  border-radius: 999px;
+}
+
+/* ---------------------------------------------------
+   Work scenes (homepage) + Contact
+   Each project gets its own full-height "beat" as you scroll, but the
+   image itself stays contained in a normal, bordered panel — same width
+   and edge-margin as every other element on the site (via .wrap) — so
+   sizing stays consistent and predictable regardless of the source
+   image's aspect ratio, instead of an edge-to-edge crop that varies.
+--------------------------------------------------- */
+.work-intro{
+  padding-bottom: 40px;
+}
+
+.scenes{
+  display: flex;
+  flex-direction: column;
+}
+
+.scene{
+  position: relative;
+  min-height: min(100svh, 760px);
+  min-height: min(100vh, 760px);
+  display: flex;
+  align-items: center;
+  border-top: 1px solid var(--border-soft);
+}
+
+.scene-row{
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 1.05fr 1fr;
+  gap: 64px;
+  align-items: center;
+  padding-top: 64px;
+  padding-bottom: 64px;
+  pointer-events: none;
+}
+.scene-row-reverse{ direction: rtl; }
+.scene-row-reverse > *{ direction: ltr; }
+
+.scene-media{
+  position: relative;
+  aspect-ratio: 4 / 3;
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: var(--bg-alt);
+  box-shadow: 0 30px 60px -24px rgba(0,0,0,0.55);
+}
+.scene-media img{
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  will-change: transform;
+}
+.scene-media.is-diagram{
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  background:
+    radial-gradient(circle at 30% 20%, rgba(91,141,214,0.09), transparent 55%),
+    var(--bg-alt);
+}
+.scene-media.is-diagram img{
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 6px;
+  background: #f4f1ea;
+  padding: 12px;
+  box-shadow: 0 20px 40px -16px rgba(0,0,0,0.5);
+}
+
+.scene-text{
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.scene-index{
+  font-family: var(--font-head);
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+}
+.scene-index-row{
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.current-badge{
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--accent-bright);
+  border: 1px solid var(--accent-line);
+  background: var(--accent-soft);
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+.current-badge::before{
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent-bright);
+}
+.scene-title{
+  font-size: clamp(1.7rem, 3.4vw, 2.4rem);
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+}
+.scene-text .project-meta{
+  font-size: 0.85rem;
+}
+.scene-hook{
+  font-size: 1.05rem;
+  line-height: 1.55;
+  color: var(--text);
+  max-width: 48ch;
+  margin: 4px 0 2px;
+}
+.scene-text .project-tags{ margin-top: 2px; }
+
+/* The button is the only clickable part of a Work card — not the whole
+   card — so hovering/scrolling past the rest of the blurb can never leave
+   the custom cursor stuck in its "hovering a link" state. */
+.scene-cta{
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  align-self: flex-start;
+  margin-top: 10px;
+  padding: 10px 20px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: var(--text);
+  /* .scene-row sets pointer-events:none so the rest of the card is
+     click-through; this is the one child that opts back in. */
+  pointer-events: auto;
+  transition: border-color 0.2s ease, background 0.2s ease, transform 100ms ease-out;
+}
+.scene-cta:hover{
+  border-color: var(--accent-line);
+  background: var(--accent-soft);
+}
+.scene-cta:hover .arrow{ transform: translateX(3px); }
+.scene-cta:active{ transform: scale(0.96); }
+.scene-cta .arrow{ display: inline-block; transition: transform 0.2s ease; }
+
+.scene-contact{
+  align-items: center;
+  justify-content: center;
+  border-top: 1px solid var(--border-soft);
+}
+.scene-contact .scene-content{
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 100%;
+}
+
+@media (max-width: 860px){
+  .scene-row{
+    grid-template-columns: 1fr;
+    padding-top: 48px;
+    padding-bottom: 48px;
+    gap: 28px;
+  }
+  .scene-row-reverse{ direction: ltr; }
+}
+@media (max-width: 640px){
+  .scene{ min-height: auto; }
+  .scene-media{ aspect-ratio: 4 / 3; }
+}
+
+/* ---------------------------------------------------
+   Contact
+--------------------------------------------------- */
+.section-contact{ padding-bottom: 120px; }
+.contact-lede{
+  color: var(--text-muted);
+  max-width: 50ch;
+  margin-bottom: 36px;
+  font-size: 1.02rem;
+}
+.contact-links{
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1px;
+  background: var(--border-soft);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.contact-link{
+  background: var(--bg);
+  padding: 28px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: background 0.2s ease, transform 100ms ease-out;
+}
+.contact-link:hover{ background: var(--surface); }
+.contact-link:active{ background: var(--surface-hover); transform: scale(0.98); }
+.contact-label{
+  font-size: 0.76rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-faint);
+}
+.contact-value{
+  font-size: 1rem;
+  color: var(--text);
+  font-weight: 500;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+/* ---------------------------------------------------
+   Project detail pages
+--------------------------------------------------- */
+.back-link{
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.86rem;
+  color: var(--text-muted);
+  margin-bottom: 28px;
+  transition: color 0.15s ease;
+}
+.back-link:hover{ color: var(--accent); }
+.back-link:active{ opacity: 0.6; }
+
+.detail-hero{
+  padding-top: 56px;
+  padding-bottom: 48px;
+}
+.detail-hero .section-label{ margin-bottom: 10px; }
+.detail-hero h1{
+  font-size: clamp(2rem, 4.4vw, 3rem);
+  letter-spacing: -0.03em;
+  margin-bottom: 14px;
+}
+.detail-hero .project-meta{
+  font-size: 0.88rem;
+  display: block;
+  margin-bottom: 20px;
+}
+.detail-hero .project-tags{ margin-top: 4px; }
+
+.gallery-section{
+  padding: 0 0 8px;
+}
+.gallery{
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  gap: 16px;
+  padding: 0 28px 20px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+  -webkit-overflow-scrolling: touch;
+}
+.gallery::-webkit-scrollbar{ height: 8px; }
+.gallery::-webkit-scrollbar-track{ background: transparent; }
+.gallery::-webkit-scrollbar-thumb{ background: var(--border); border-radius: 999px; }
+
+.gallery-item{
+  flex: 0 0 auto;
+  width: min(720px, 82vw, 70vh);
+  scroll-snap-align: start;
+  margin: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--bg-alt);
+  display: flex;
+  flex-direction: column;
+}
+.gallery-item .gallery-media{
+  position: relative;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-alt);
+}
+.gallery-item.is-diagram .gallery-media{
+  background:
+    radial-gradient(circle at 30% 20%, rgba(91,141,214,0.09), transparent 55%),
+    var(--bg-alt);
+  padding: 28px;
+}
+.gallery-item img, .gallery-item video{
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.gallery-item.is-diagram img{
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 6px;
+  background: #f4f1ea;
+  padding: 12px;
+  box-shadow: 0 20px 40px -16px rgba(0,0,0,0.5);
+}
+/* Portrait photos: cover would crop the top/bottom off a tall shot, so
+   scale it down to fit the 4:3 frame in full instead of cropping it. */
+.gallery-item.is-portrait img{
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+/* Video: its aspect ratio rarely matches the 4:3 frame either, and cover
+   was cropping the top and bottom off — scale it down to fit in full. */
+.gallery-item.is-video video{
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+.gallery-caption{
+  padding: 14px 18px;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  border-top: 1px solid var(--border-soft);
+}
+
+.gallery-hint{
+  padding: 0 28px;
+  font-size: 0.78rem;
+  color: var(--text-faint);
+  margin-bottom: 32px;
+}
+
+.detail-body{
+  padding-top: 40px;
+  padding-bottom: 24px;
+  border-top: 1px solid var(--border-soft);
+}
+.detail-body p{
+  color: var(--text-muted);
+  font-size: 1.02rem;
+  margin-bottom: 18px;
+  max-width: 68ch;
+}
+.detail-body .project-points{
+  max-width: 60ch;
+  margin: 8px 0 32px;
+}
+.detail-body .project-points li{
+  font-size: 0.98rem;
+}
+
+.detail-placeholder{
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  padding: 32px;
+  color: var(--text-faint);
+  font-size: 0.9rem;
+  max-width: 60ch;
+  margin-bottom: 32px;
+}
+
+.detail-nav{
+  padding-top: 32px;
+  padding-bottom: 72px;
+  border-top: 1px solid var(--border-soft);
+  margin-top: 24px;
+}
+.detail-nav a{
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.95rem;
+  color: var(--text);
+  font-weight: 500;
+}
+.detail-nav a:hover{ color: var(--accent); }
+.detail-nav a:active{ opacity: 0.6; }
+.detail-nav .arrow{ transition: transform 0.2s ease; }
+.detail-nav a:hover .arrow{ transform: translateX(3px); }
+
+@media (max-width: 640px){
+  .gallery-item{ width: 88vw; }
+  .detail-hero{ padding: 40px 20px 36px; }
+}
+
+/* ---------------------------------------------------
+   Footer
+--------------------------------------------------- */
+.site-footer{
+  border-top: 1px solid var(--border-soft);
+  padding: 28px 0 40px;
+}
+.footer-inner{
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 0.82rem;
+  color: var(--text-faint);
+}
+
+/* ---------------------------------------------------
+   Custom cursor
+--------------------------------------------------- */
+.custom-cursor{
+  --cx: -100px;
+  --cy: -100px;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 18px;
+  height: 18px;
+  margin: -9px 0 0 -9px;
+  border-radius: 50%;
+  border: 1.5px solid var(--accent);
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0;
+  /* position tracks the pointer 1:1 with no easing — only size/opacity
+     transition, so the ring never visibly lags behind the real cursor */
+  transform: translate(var(--cx), var(--cy));
+  transition: opacity 0.25s ease, width 0.18s ease, height 0.18s ease, margin 0.18s ease, background 0.2s ease, border-color 0.2s ease;
+}
+.custom-cursor.is-active{ opacity: 1; }
+.custom-cursor.is-hover{
+  width: 32px;
+  height: 32px;
+  margin: -16px 0 0 -16px;
+  background: var(--accent-soft);
+}
+.custom-cursor.is-down{
+  width: 14px;
+  height: 14px;
+  margin: -7px 0 0 -7px;
+}
+
+html.has-custom-cursor, html.has-custom-cursor body,
+html.has-custom-cursor a, html.has-custom-cursor button{
+  cursor: none;
+}
+
+/* ---------------------------------------------------
+   Responsive
+--------------------------------------------------- */
+@media (max-width: 860px){
+  .hero{
+    grid-template-columns: 1fr;
+    padding-top: 64px;
+    text-align: left;
+  }
+  .hero-media{ justify-self: start; order: -1; margin-bottom: 8px; }
+  .hero-frame{ width: min(240px, 50vw); }
+
+  .about-grid{ grid-template-columns: 1fr; gap: 32px; }
+  .about-facts{ grid-template-columns: 1fr 1fr; }
+
+  .contact-links{ grid-template-columns: 1fr; }
+
+  .nav{ display: none; }
+}
+
+@media (max-width: 520px){
+  .header-inner{ height: 58px; }
+  .hero{ padding: 48px 20px 80px; }
+  .wrap{ padding: 0 20px; }
+  .about-facts{ grid-template-columns: 1fr 1fr; }
+}
+
+/* ---------------------------------------------------
+   Reduced motion
+   A gentler equivalent, not nothing: the parallax, spotlight, grid drift,
+   magnetic scroll-snap, and slide-up reveals are all gated off in main.js.
+   What's left here is the pure-CSS looping/animated bits those JS checks
+   can't reach directly.
+--------------------------------------------------- */
+@media (prefers-reduced-motion: reduce){
+  .scroll-cue span{ animation: none; opacity: 1; }
+  .eyebrow::before, .section-label::before{ transition: none; }
+}
+
+/* The header is the only translucent/blurred surface on the site — make it
+   frostier/solid and drop the blur instead of just disabling it outright. */
+@media (prefers-reduced-transparency: reduce){
+  .site-header{
+    backdrop-filter: none;
+    background: var(--bg);
+  }
+  .site-header.is-scrolled{ background: var(--bg); }
+}
+
+/* Boost the token values everything else already reads from, rather than
+   rewriting every bordered surface individually: hairline borders and
+   faint/muted text are the two things this theme relies on most, and both
+   are already routed through these custom properties everywhere. */
+@media (prefers-contrast: more){
+  :root{
+    --border: #4a4c54;
+    --border-soft: #34363c;
+    --text-muted: #c8c9ce;
+    --text-faint: #a3a4ab;
+  }
+  .site-header{ border-bottom-width: 1.5px; }
+}
